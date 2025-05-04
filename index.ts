@@ -1,25 +1,13 @@
 import { $ } from "bun";
 import { existsSync } from "fs";
-import { join } from "path";
-
-const scheme = "OptionOverlay";
-const config = "Release";
-const appName = "OptionOverlay.app";
-const appBundlePath = `/Applications/${appName}`;
-const derivedDataPath = "./build";
-const builtAppPath = join(
-  derivedDataPath,
-  "Build",
-  "Products",
+import {
+  scheme,
   config,
-  appName,
-);
-
-// Step 1: Quit the app if running
-async function quitApp() {
-  console.log("🛑 Quitting running instance...");
-  await $`osascript -e 'tell application "${scheme}" to quit'`;
-}
+  derivedDataPath,
+  builtAppPath,
+  appBundlePath,
+  quitApp,
+} from "./common";
 
 // Step 2: Build the app
 async function buildApp() {
@@ -55,7 +43,6 @@ async function launchApp() {
   await $`open -a "${scheme}"`;
 }
 
-// Entry point
 async function main() {
   try {
     await quitApp();
