@@ -5,15 +5,23 @@ import CoreServices
 class AppDelegate: NSObject, NSApplicationDelegate {
     var overlayController: OverlayController!
     var monitor: Any?
-    var keymapUpdater = KeymapUpdater()
     var holdHandler: HoldHandler?
+    var configLoader = ConfigLoader()
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Hide the app's main window from the Dock and prevent it from appearing
         NSApp.setActivationPolicy(.accessory) // Keeps the app running in the background
         holdHandler = HoldHandler(showHandler: {
-            self.overlayController.updateKeys(self.keymapUpdater.updateKeys())
-            self.overlayController.showOverlay()
+            self.configLoader.loadConfig {result in
+                let dict = switch result {
+                case .success(let config):
+                    ConfigParser.parse(config: config)
+                case .failure(let error):
+                    ["error": error.localizedDescription]
+                }
+                self.overlayController.updateKeys(dict)
+                self.overlayController.showOverlay()
+            }
         },
         hideHandler: {
             self.overlayController.hideOverlay()
@@ -33,12 +41,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func monitorKeyPress() {
-        monitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
             guard let self = self else { return }
-            holdHandler?.update(pressed: event.modifierFlags.contains(.option))
             
-            if (event.keyCode == 123 || event.keyCode == 124) {
-                holdHandler?.reset()
+            switch event.type {
+                case .keyDown:
+                    if (event.keyCode == 0x7C || event.keyCode == 0x7B) {
+                        holdHandler?.reset()
+                    }
+                    break
+                    
+                case .flagsChanged:
+                    holdHandler?.update(pressed: event.modifierFlags.contains(.option))
+                    break
+                    
+                default:
+                    break
             }
         }
     }
