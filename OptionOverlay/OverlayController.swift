@@ -36,18 +36,18 @@ class OverlayController {
         stackView = NSStackView()
         stackView.orientation = .vertical
         stackView.alignment = .leading
-        stackView.spacing = 6
+        stackView.spacing = 2
         stackView.edgeInsets = NSEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
         stackView.translatesAutoresizingMaskIntoConstraints = false
 
         contentView.addSubview(stackView)
 
-        NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            stackView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-        ])
+        // NSLayoutConstraint.activate([
+        //     stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+        //     stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
+        //     stackView.topAnchor.constraint(equalTo: contentView.topAnchor),
+        //     stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+        // ])
 
         overlayWindow = OverlayWindow(content: contentView)
     }
@@ -55,8 +55,9 @@ class OverlayController {
     func updateKeys(_ keyMap: [String: String]) {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        for (key, command) in keyMap.sorted(by: { $0.key < $1.key }) {
-            let label = NSTextField(labelWithString: "⌥ \(key): \(command)")
+        for (key, command) in keyMap.sorted(by: { $0.value < $1.value }) {
+            let padded = key.padRight(toLength: 3)
+            let label = NSTextField(labelWithString: "\(padded)┃ \(command)")
             label.textColor = .white
             label.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .medium)
             stackView.addArrangedSubview(label)
@@ -64,15 +65,16 @@ class OverlayController {
 
         stackView.layoutSubtreeIfNeeded()
 
-        let contentSize = stackView.fittingSize
+        var contentSize = stackView.fittingSize
+        contentSize.width = contentSize.width + 10
         overlayWindow.setContentSize(contentSize)
 
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
             let windowSize = overlayWindow.frame.size
             let origin = NSPoint(
-                x: screenFrame.midX - windowSize.width / 2,
-                y: screenFrame.midY - windowSize.height / 2
+                x: screenFrame.maxX - windowSize.width - 16,
+                y: screenFrame.maxY - windowSize.height
             )
             overlayWindow.setFrameOrigin(origin)
         }
@@ -84,5 +86,12 @@ class OverlayController {
 
     func hideOverlay() {
         overlayWindow.orderOut(nil)
+    }
+}
+
+extension String {
+    func padRight(toLength: Int, withPad character: Character = " ") -> String {
+        let paddingCount = max(0, toLength - self.count)
+        return  self + String(repeating: character, count: paddingCount)
     }
 }
